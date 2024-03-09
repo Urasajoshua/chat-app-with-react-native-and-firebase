@@ -1,60 +1,73 @@
-import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { GiftedChat } from 'react-native-gifted-chat';
-import { firebase as auth } from '@react-native-firebase/auth';
+import { firebase as auth,  } from '@react-native-firebase/auth';
 import { firebase } from '@react-native-firebase/firestore';
 
 const Chat = ({ route }) => {
   const [messages, setMessages] = useState([]);
-  const [user, setUser] = useState('');
-  const { uid } = route.params;
+  const [user, setUser] = useState(null); 
 
+  useEffect(() => {
+    const unsubscribe = auth.auth().onAuthStateChanged(userExist => {
+      setUser(userExist);
+    });
 
-
-  useEffect(()=>{
-    const userCheck = auth.auth().onAuthStateChanged(userExist =>{
-        if(userExist){
-            setUser(userExist)
-            console.log('user exist',userExist);
-        }
-        else{
-            setUser("")
-        }
-    })
-},[])
-
+    return () => unsubscribe(); 
+  }, []);
+  useEffect(() => {
+    if (user) {
+      const fetchData = async () => {
+        try {
+          const snapshot = await firebase.firestore().collection('chats')
+            .where('senderId', 'in', [user.uid, route.params.uid])
+            .where('receiverId', 'in', [user.uid, route.params.uid])
+            .orderBy('createdAt', 'desc')
+            .get();
   
-
+          const newMessages = snapshot.docs.map(doc => ({
+            _id: doc.id,
+            createdAt: doc.data().createdAt.toDate(),
+            text: doc.data().text,
+            user: {
+              _id: doc.data().senderId,
+              name: doc.data().senderName,
+            },
+            receiverId: doc.data().receiverId,
+          }));
   
-
-  useLayoutEffect(() => {
-    const message =firebase.firestore().collection('chats').orderBy('createdAt','desc').onSnapshot(snapShot =>setMessages(snapShot.docs.map(doc=>({
-        _id:doc.data()._id,
-        createdAt:doc.data().createdAt.toDate(),
-        text:doc.data().text,
-        user:doc.data().user
-    }))))
-    return message
-  }, ); 
-
+          setMessages(newMessages);
+        } catch (error) {
+          console.error('Error fetching messages:', error);
+        }
+      };
+  
+      fetchData();
+    }
+  }, [user, route.params.uid]);
+  
 
   const onSend = useCallback((messages = []) => {
-    setMessages(previousMessages => GiftedChat.append(previousMessages,messages))
-    const {_id,createdAt,text,user} = messages[0]
-    firebase.firestore().collection('chats').add({_id,createdAt,text,user})
-  })
+    const { _id, createdAt, text } = messages[0];
+    setMessages(previousMessages => GiftedChat.append(previousMessages, messages));
 
- 
-
+    firebase.firestore().collection('chats').add({
+      _id,
+      createdAt,
+      text,
+      senderId: user.uid,
+      senderName: user.email,
+      receiverId: route.params.uid,
+      receiverName: route.params.name,
+    });
+  }, [user, route.params.uid]);
 
   return (
     <GiftedChat
       messages={messages}
       onSend={text => onSend(text)}
       user={{
-        _id: user.uid,
-        name: user.email,
-        
-        
+        _id: user ? user.uid : '',
+        name: user ? user.email : '',
       }}
     />
   );

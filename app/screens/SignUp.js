@@ -10,16 +10,30 @@ const SignUp = ({navigation}) => {
   const [password,setPassword] = useState("")
   const [name,setname] = useState("")
 
-  const signupUser = ()=>{
-     auth.auth().createUserWithEmailAndPassword(email,password).then((userCredentials)=>{
-      const user = userCredentials.user;
-      user.updateProfile({displayName:name,photoURL:'https://www.google.com/imgres?imgurl=https%3A%2F%2Fmedia.newyorker.com%2Fphotos%2F5de59f9310863b0009e9d541%2F4%3A3%2Fw_2560%2Ch_1920%2Cc_limit%2FSchulman-PeterDinklage.jpg&tbnid=qybVl78lQyCDtM&vet=12ahUKEwi2uffPt-KEAxW9micCHVYpAEMQMygLegUIARCHAQ..i&imgrefurl=https%3A%2F%2Fwww.newyorker.com%2Fculture%2Fthe-new-yorker-interview%2Fpeter-dinklage-is-still-punk-rock&docid=G1out5kdFLi5SM&w=2560&h=1920&q=peter&client=firefox-b-d&ved=2ahUKEwi2uffPt-KEAxW9micCHVYpAEMQMygLegUIARCHAQ'
-      })
-      navigation.navigate('login')
-    }).catch((error)=>{
-      console.log('this is error in creating user', error);
-    })
-  }
+  const signupUser = () => {
+    auth.auth().createUserWithEmailAndPassword(email, password)
+        .then((userCredentials) => {
+            console.log('User created:', userCredentials.user);
+            
+            // Create a user document in Firestore
+            firebase.firestore().collection('users').doc(userCredentials.user.uid).set({
+                id: userCredentials.user.uid,
+                name: name, 
+                email: userCredentials.user.email,
+            })
+            .then(() => {
+                console.log('User document created in Firestore');
+                // Navigate to login screen
+                navigation.navigate('login');
+            })
+            .catch((error) => {
+                console.error('Error creating user document in Firestore:', error);
+            });
+        })
+        .catch((error) => {
+            console.log('Error in creating user:', error);
+        });
+};
   return (
     <View>
       <View style={{padding:10}}>

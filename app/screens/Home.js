@@ -51,10 +51,10 @@ const Home = ({navigation}) => {
             <View>
                 <FlatList
                     data={users}
-                    keyExtractor={item => item.uid}
+                    keyExtractor={item => item.id}
                     renderItem={({ item }) => (
                         <View>
-                            <Pressable onPress={()=>navigation.navigate('chat',{uid: item.uid,name:item.name})}>
+                            <Pressable onPress={()=>navigation.navigate('chat',{uid: item.id,name:item.name})}>
                             <Text style={{paddingLeft:10,fontSize:24}}>{item.name}</Text>
                             <Text>{item.email}</Text>
                             </Pressable>
