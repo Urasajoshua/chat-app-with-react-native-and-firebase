@@ -14,6 +14,8 @@ const Chat = ({ route }) => {
 
     return () => unsubscribe(); 
   }, []);
+
+  
   useEffect(() => {
     if (user) {
       const fetchData = async () => {
